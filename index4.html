@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Map of Réunion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+    <link
+        href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css"
+        rel="stylesheet"
+    />
+    <style>
+        /* Create a two-column layout */
+        .map-container {
+            width: 50%; 
+            height: 900px;
+            float: left; /* Float the first map to the left */
+        }
+        #bottom-map {
+            float: right; /* Float the second map to the right */
+        }
+    </style>
+</head>
+<body>
+    <!-- Left map container -->
+    <div id="upper-map" class="map-container"></div>
+    
+    <!-- Right map container -->
+    <div id="bottom-map" class="map-container"></div>
+
+    <script>
+        // Replace 'YOUR_ACCESS_TOKEN' with your Mapbox access token
+        mapboxgl.accessToken = 'pk.eyJ1IjoidGdpbGxhcmQiLCJhIjoiY2xtZXFzZ3dtMjQ3dDNwbzVlMDd3NGp3aCJ9.56_lIx7Su16-_EPRC72LPQ';
+
+        // Define city coordinates
+        var cityCoordinates = {
+            'Saint-Denis': [55.4700, -20.8789],
+            'Saint-Paul': [55.2708, -21.0096],
+            'Saint-Pierre': [55.4778, -21.3395]
+            // Add more cities and coordinates as needed
+        };
+
+        // Create an upper map instance centered on Réunion
+        var upperMap = new mapboxgl.Map({
+            container: 'upper-map', // Specify the ID of the HTML element
+            style: 'mapbox://styles/mapbox/streets-v11', // Map style
+            center: [55.5364, -21.1151], // Centered on Réunion [longitude, latitude]
+            zoom: 9 // Initial zoom level
+        });
+
+        // Create a bottom map instance centered on Réunion
+        var bottomMap = new mapboxgl.Map({
+            container: 'bottom-map', // Specify the ID of the HTML element
+            style: 'mapbox://styles/mapbox/outdoors-v11', // Map style (or use a different style that suits your needs)
+            center: [55.5364, -21.1151], // Centered on Réunion [longitude, latitude]
+            zoom: 9 // Initial zoom level
+        });
+
+                // Add the Mapbox Terrain V2 source
+        bottomMap.on('load', function () {
+            bottomMap.addSource('mapbox-terrain', {
+                type: 'raster-dem',
+                url: 'mapbox://mapbox.mapbox-terrain-v2',
+                tileSize: 512,
+                maxzoom: 14
+            });
+
+            // Add a layer to display the terrain
+            bottomMap.addLayer({
+                'id': 'terrain-layer',
+                'type': 'hillshade',
+                'source': 'mapbox-terrain',
+                'maxzoom': 22,
+                'paint': {
+                    'hillshade-exaggeration': 1, // Adjust this value as needed
+                    'hillshade-highlight-color': '#1C58A6',
+                    'hillshade-shadow-color': '#3767A8'
+                }
+            });
+        });
+
+        // Add navigation controls to both maps
+        upperMap.addControl(new mapboxgl.NavigationControl());
+        bottomMap.addControl(new mapboxgl.NavigationControl());
+
+        // Add a click event listener to the upper map
+        upperMap.on('click', function (e) {
+            // Get the clicked coordinates
+            var clickedCoordinates = [e.lngLat.lng, e.lngLat.lat];
+
+            // Loop through the city coordinates to check if the click is within a city
+            for (var city in cityCoordinates) {
+                var coordinates = cityCoordinates[city];
+                var distance = turf.distance(coordinates, clickedCoordinates, { units: 'meters' });
+
+                // Set a threshold distance (adjust as needed)
+                var threshold = 10000; // meters
+
+                if (distance < threshold) {
+                    // Center the bottom map on the clicked city
+                    bottomMap.flyTo({
+                        center: coordinates,
+                        zoom: 12 // Adjust zoom level as needed
+                    });
+
+                    // You can perform additional actions here, like displaying city information
+                    console.log('Clicked on ' + city + ' in the upper map.');
+                    break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
